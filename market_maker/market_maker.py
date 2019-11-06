@@ -197,6 +197,15 @@ class ExchangeInterface:
             return orders
         return self.bitmex.cancel([order['orderID'] for order in orders])
 
+    def create_order(self, order):
+        if self.dry_run:
+            return order
+        return self.bitmex.create_order(order)
+
+    def create_stop_market(self, order):
+        if self.dry_run:
+            return order
+        return self.bitmex.place_stop_order(order)    
 
 class OrderManager:
     def __init__(self):
@@ -319,8 +328,9 @@ class OrderManager:
         stop_orders = []
         for i in (range(1, settings.ORDER_PAIRS + 1)):
             if not self.long_position_limit_exceeded():
+                ##change logic here to if we already have orders on the market, we dont need to place an order
                 orders = self.prepare_order(-i)
-                buy_orders.append(orders[0])
+                buy_orders.append(orders)
                 # sell_orders.append(orders[1])
 
                 # buy_orders.append(self.prepare_order(-i))
@@ -329,9 +339,11 @@ class OrderManager:
             #     sell_orders.append(self.prepare_order(i))
 
             ##filler number until stop loss
+        instrument = self.exchange.get_instrument
+    
         stop_orders.append(self.place_stopLoss(buy_orders[0]['price'] - 200, buy_orders[0]['orderQty']*2, "Sell"))
         self.converge_orders(buy_orders,sell_orders)
-        return self.converge_orders(buy_orders, sell_orders)
+        return self.converge_orders(buy_orders, stop_orders)
 
     def place_stopLoss(self, price, qty, side):
         
@@ -345,7 +357,8 @@ class OrderManager:
         # else:
         #     quantity = settings.ORDER_START_SIZE + ((abs(index) - 1) * settings.ORDER_STEP_SIZE)
 
-        price = self.get_price_offset(index)
+        ticker = self.exchange.get_ticker()
+        price = ticker["mid"] +50
         quantity = 100000//price
         # opposite_order = self.prepare_stoploss(price - 200, quantity * 2, -index)
         return {'price': price, 'orderQty': quantity, 'side': "Buy" if index < 0 else "Sell"}
@@ -354,7 +367,10 @@ class OrderManager:
 
     def prepare_stoploss(self, stopPrice, quantity, index):
         # price = self.get_price_offset(index)
-        return {'price': stopPrice, 'orderQty': quantity, 'side': "StopLimit"}
+        return {'stopPx': stopPrice, 'orderQty': quantity, 'side': "Buy" if index < 0 else "Sell"}
+
+    def place_stopMarket(self, order):
+        return self.exchange.create_stop_market(order)
 
     def converge_orders(self, buy_orders, sell_orders):
         """Converge the orders we currently have in the book with what we want to be in the book.
@@ -563,6 +579,8 @@ def run():
     om = OrderManager()
     # Try/except just keeps ctrl-c from printing an ugly stacktrace
     try:
-        om.run_loop()
+        stopMarket = om.prepare_stoploss(5000,200,1)
+        om.place_stopMarket(stopMarket)
+        # om.run_loop()
     except (KeyboardInterrupt, SystemExit):
         sys.exit()

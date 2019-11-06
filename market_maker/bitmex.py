@@ -217,6 +217,23 @@ class BitMEX(object):
         }
         return self._curl_bitmex(path=path, postdict=postdict, verb="POST", max_retries=0)
 
+    @authentication_required
+    def place_stop_order(self, quantity, price):
+        """Place an order."""
+        if price < 0:
+            raise Exception("Price must be positive.")
+
+        endpoint = "order"
+        # Generate a unique clOrdID with our prefix so we can identify it.
+        clOrdID = self.orderIDPrefix + base64.b64encode(uuid.uuid4().bytes).decode('utf8').rstrip('=\n')
+        postdict = {
+            'symbol': self.symbol,
+            'orderQty': quantity,
+            'stopPx': price,
+            'clOrdID': clOrdID
+        }
+        return self._curl_bitmex(path=endpoint, postdict=postdict, verb="POST")
+
     def _curl_bitmex(self, path, query=None, postdict=None, timeout=None, verb=None, rethrow_errors=False,
                      max_retries=None):
         """Send a request to BitMEX Servers."""
