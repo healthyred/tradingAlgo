@@ -316,17 +316,26 @@ class OrderManager:
         # then we match orders from the outside in, ensuring the fewest number of orders are amended and only
         # a new order is created in the inside. If we did it inside-out, all orders would be amended
         # down and a new order would be created at the outside.
+        stop_orders = []
         for i in (range(1, settings.ORDER_PAIRS + 1)):
             if not self.long_position_limit_exceeded():
                 orders = self.prepare_order(-i)
                 buy_orders.append(orders[0])
-                sell_orders.append(orders[1])
+                # sell_orders.append(orders[1])
+
                 # buy_orders.append(self.prepare_order(-i))
                 # sell_orders.append(self.prepare_stoploss(i))
             # if not self.short_position_limit_exceeded():
             #     sell_orders.append(self.prepare_order(i))
 
+            ##filler number until stop loss
+        stop_orders.append(self.place_stopLoss(buy_orders[0]['price'] - 200, buy_orders[0]['orderQty']*2, "Sell"))
+        self.converge_orders(buy_orders,sell_orders)
         return self.converge_orders(buy_orders, sell_orders)
+
+    def place_stopLoss(self, price, qty, side):
+        
+        return {'price': price, 'orderQty': qty, 'side': side}
 
     def prepare_order(self, index):
         """Create an order object."""
@@ -336,11 +345,10 @@ class OrderManager:
         # else:
         #     quantity = settings.ORDER_START_SIZE + ((abs(index) - 1) * settings.ORDER_STEP_SIZE)
 
-        
         price = self.get_price_offset(index)
         quantity = 100000//price
-        opposite_order = self.prepare_stoploss(price - 200, quantity * 2, -index)
-        return [{'price': price, 'orderQty': quantity, 'side': "Buy" if index < 0 else "Sell"}, opposite_order]
+        # opposite_order = self.prepare_stoploss(price - 200, quantity * 2, -index)
+        return {'price': price, 'orderQty': quantity, 'side': "Buy" if index < 0 else "Sell"}
 
         # return {'price' : 50000, 'orderQty': 1, 'side': "Buy"}
 
