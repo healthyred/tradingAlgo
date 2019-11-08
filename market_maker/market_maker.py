@@ -205,7 +205,7 @@ class ExchangeInterface:
     def create_stop_market(self, order):
         if self.dry_run:
             return order
-        return self.bitmex.place_stop_order(order)    
+        return self.bitmex.place_stop_order(order['orderQty'], order['stopPx'])    
 
 class OrderManager:
     def __init__(self):
@@ -229,12 +229,14 @@ class OrderManager:
         self.reset()
 
     def reset(self):
-        self.exchange.cancel_all_orders()
+        #self.exchange.cancel_all_orders()
         self.sanity_check()
         self.print_status()
 
+        stopMarket = self.prepare_stoploss(5000,-200,-1)
+        self.place_stopMarket(stopMarket)
         # Create orders and converge.
-        self.place_orders()
+        #self.place_orders()
 
     def print_status(self):
         """Print the current MM status."""
@@ -577,10 +579,13 @@ def run():
     logger.info('BitMEX Market Maker Version: %s\n' % constants.VERSION)
 
     om = OrderManager()
+    #stopMarket = om.prepare_stoploss(5000,200,-1)
+    #om.place_stopMarket(stopMarket)
     # Try/except just keeps ctrl-c from printing an ugly stacktrace
     try:
-        stopMarket = om.prepare_stoploss(5000,200,1)
-        om.place_stopMarket(stopMarket)
+        print("hello")
+        # stopMarket = om.prepare_stoploss(5000,200,1)
+        # om.place_stopMarket(stopMarket)
         # om.run_loop()
     except (KeyboardInterrupt, SystemExit):
         sys.exit()

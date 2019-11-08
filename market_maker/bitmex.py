@@ -217,7 +217,6 @@ class BitMEX(object):
         }
         return self._curl_bitmex(path=path, postdict=postdict, verb="POST", max_retries=0)
 
-    @authentication_required
     def place_stop_order(self, quantity, price):
         """Place an order."""
         if price < 0:
