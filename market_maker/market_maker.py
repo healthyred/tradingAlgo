@@ -235,6 +235,10 @@ class OrderManager:
 
         stopMarket = self.prepare_stoploss(5000,-200,-1)
         self.place_stopMarket(stopMarket)
+        ##TODO: write a function that clears all stop market orders as well,
+        ##Write a function that runs constantly, and will be able to update our market price on resets
+        ##Write logic to place the intial orders based on the new prices that we have set.
+
         # Create orders and converge.
         #self.place_orders()
 
